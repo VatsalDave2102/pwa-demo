@@ -45,6 +45,8 @@ function createCard() {
 	cardTitle.style.height = "180px";
 	cardWrapper.appendChild(cardTitle);
 	var cardTitleTextElement = document.createElement("h2");
+	// text color
+	cardTitleTextElement.style.color = "white";
 	cardTitleTextElement.className = "mdl-card__title-text";
 	cardTitleTextElement.textContent = "San Fransisco Trip";
 	cardTitle.appendChild(cardTitleTextElement);
