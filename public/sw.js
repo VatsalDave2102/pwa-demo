@@ -1,8 +1,8 @@
 // when making changes in service worker, open a new tab to see changes or
 // update from developer console to see changes
 
-var CACHE_STATIC_NAME = "static-v3";
-var CACHE_DYNAMIC_NAME = "dynamic-v2";
+var CACHE_STATIC_NAME = "static-v6";
+var CACHE_DYNAMIC_NAME = "dynamic-v3";
 
 // install and activate are triggered by install and activate
 self.addEventListener("install", function (event) {
