@@ -24,6 +24,15 @@ function openCreatePostModal() {
 
 		deferredPrompt = null;
 	}
+
+	// condition to unregister service workers
+	// if ("serviceWorker" in Navigator) {
+	// 	navigator.serviceWorker.getRegistration().then(function (registrations) {
+	// 		for (var i = 0; i < registrations.length; i++) {
+	// 			registrations[i].unregister();
+	// 		}
+	// 	});
+	// }
 }
 
 function closeCreatePostModal() {
@@ -45,6 +54,12 @@ closeCreatePostModalButton.addEventListener("click", closeCreatePostModal);
 // 		});
 // 	}
 // };
+
+function clearCards() {
+	while (sharedMomentsArea.hasChildNodes()) {
+		sharedMomentsArea.removeChild(sharedMomentsArea.lastChild);
+	}
+}
 
 // function to create a card
 function createCard() {
@@ -74,10 +89,32 @@ function createCard() {
 	sharedMomentsArea.appendChild(cardWrapper);
 }
 
-fetch("https://httpbin.org/get")
+var url = "https://httpbin.org/get";
+var networkDataReceived = false;
+fetch(url)
 	.then(function (res) {
 		return res.json();
 	})
 	.then(function (data) {
+		console.log("From web", data);
+		clearCards();
 		createCard();
 	});
+// cache then network strategy
+if ("caches" in window) {
+	caches
+		.match(url)
+		.then(function (response) {
+			if (response) {
+				return response.json();
+			}
+		})
+		.then(function (data) {
+			console.log("From cache", data);
+			// if data is received from web, dont create another card
+			if (!networkDataReceived) {
+				clearCards();
+				createCard();
+			}
+		});
+}
