@@ -1,7 +1,10 @@
+importScripts("/src/js/idb.js");
+importScripts("/src/js/utility.js");
+
 // when making changes in service worker, open a new tab to see changes or
 // update from developer console to see changes
 
-var CACHE_STATIC_NAME = "static-v12";
+var CACHE_STATIC_NAME = "static-v16";
 var CACHE_DYNAMIC_NAME = "dynamic-v3";
 var STATIC_FILES = [
 	"/",
@@ -9,6 +12,7 @@ var STATIC_FILES = [
 	"/offline.html",
 	"/src/js/app.js",
 	"/src/js/feed.js",
+	"/src/js/idb.js",
 	"/src/js/promise.js",
 	"/src/js/fetch.js",
 	"/src/js/material.min.js",
@@ -45,12 +49,14 @@ self.addEventListener("install", function (event) {
 	);
 });
 
+// activate event listener
 self.addEventListener("activate", function (event) {
 	console.log("[service worker] activating server worker", event);
 	event.waitUntil(
-		caches.keys().then(function (keyListt) {
+		caches.keys().then(function (keyList) {
 			return Promise.all(
-				keyListt.map(function (key) {
+				keyList.map(function (key) {
+					// removing old cache
 					if (key !== CACHE_STATIC_NAME && key !== CACHE_DYNAMIC_NAME) {
 						console.log("[Service worker] Rmoving old cache:", key);
 						return caches.delete(key);
@@ -62,6 +68,7 @@ self.addEventListener("activate", function (event) {
 	return self.clients.claim();
 });
 
+// function to check if if url is in array or not
 function isInArray(string, array) {
 	var cachePath;
 	if (string.indexOf(self.origin) === 0) {
@@ -75,22 +82,23 @@ function isInArray(string, array) {
 	return array.indexOf(cachePath) > -1;
 }
 
-// cache with network strategy
+// cache with network strategy for fetch requests
 self.addEventListener("fetch", function (event) {
 	// for specific url, we use cache with network strategy
-	var url = "https://httpbin.org/get";
+	var url =
+		"https://pwa-demo-95402-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json";
+	// if request url matches our url
 	if (event.request.url.indexOf(url) > -1) {
+		// write the data to indexedDB
 		event.respondWith(
-			// open the dynamic cache
-			caches.open(CACHE_DYNAMIC_NAME).then(function (cache) {
-				// fetch the request
-				return fetch(event.request).then(function (response) {
-					// trimCache(CACHE_DYNAMIC_NAME, 3);
-					// store the resposne in cache
-					cache.put(event.request, response.clone());
-					// return the response
-					return response;
+			fetch(event.request).then(function (response) {
+				var clonedResponse = response.clone();
+				clonedResponse.json().then(function (data) {
+					for (var key in data) {
+						writeData("posts", data[key]);
+					}
 				});
+				return response;
 			})
 		);
 	} else if (isInArray(event.request.url, STATIC_FILES)) {

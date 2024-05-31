@@ -62,23 +62,23 @@ function clearCards() {
 }
 
 // function to create a card
-function createCard() {
+function createCard(data) {
 	var cardWrapper = document.createElement("div");
 	cardWrapper.className = "shared-moment-card mdl-card mdl-shadow--2dp";
 	var cardTitle = document.createElement("div");
 	cardTitle.className = "mdl-card__title";
-	cardTitle.style.backgroundImage = "url('/src/images/sf-boat.jpg')";
+	cardTitle.style.backgroundImage = "url(" + data.image + ")";
 	cardTitle.style.backgroundSize = "cover";
 	cardTitle.style.height = "180px";
 	cardWrapper.appendChild(cardTitle);
 	var cardTitleTextElement = document.createElement("h2");
 	cardTitleTextElement.style.color = "white";
 	cardTitleTextElement.className = "mdl-card__title-text";
-	cardTitleTextElement.textContent = "San Fransisco Trip";
+	cardTitleTextElement.textContent = data.title;
 	cardTitle.appendChild(cardTitleTextElement);
 	var cardSupportingText = document.createElement("div");
 	cardSupportingText.className = "mdl-card__supporting-text";
-	cardSupportingText.textContent = "In San Fransisco";
+	cardSupportingText.textContent = data.location;
 	cardSupportingText.style.textAlign = "center";
 	// var cardSaveButton = document.createElement("button");
 	// cardSaveButton.textContent = "Save";
@@ -89,16 +89,30 @@ function createCard() {
 	sharedMomentsArea.appendChild(cardWrapper);
 }
 
-var url = "https://httpbin.org/get";
+function updateUI(data) {
+	clearCards();
+
+	for (let i = 0; i < data.length; i++) {
+		createCard(data[i]);
+	}
+}
+
+var url =
+	"https://pwa-demo-95402-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json";
+
 var networkDataReceived = false;
+
 fetch(url)
 	.then(function (res) {
 		return res.json();
 	})
 	.then(function (data) {
 		console.log("From web", data);
-		clearCards();
-		createCard();
+		let dataArray = [];
+		for (let key in data) {
+			dataArray.push(data[key]);
+		}
+		updateUI(dataArray);
 	});
 // cache then network strategy
 if ("caches" in window) {
@@ -113,8 +127,11 @@ if ("caches" in window) {
 			console.log("From cache", data);
 			// if data is received from web, dont create another card
 			if (!networkDataReceived) {
-				clearCards();
-				createCard();
+				let dataArray = [];
+				for (let key in data) {
+					dataArray.push(data[key]);
+				}
+				updateUI(dataArray);
 			}
 		});
 }
