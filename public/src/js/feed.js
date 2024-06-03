@@ -6,7 +6,10 @@ var closeCreatePostModalButton = document.querySelector(
 );
 
 function openCreatePostModal() {
-	createPostArea.style.display = "block";
+	// createPostArea.style.display = "block";
+	// setTimeout(() => {
+	createPostArea.style.transform = "translateY(0)";
+	// }, 1);
 
 	// if there is deferredPrompt, then show install banner to user
 	if (deferredPrompt) {
@@ -36,7 +39,8 @@ function openCreatePostModal() {
 }
 
 function closeCreatePostModal() {
-	createPostArea.style.display = "none";
+	createPostArea.style.transform = "translateY(100vh)";
+	// createPostArea.style.display = "none";
 }
 
 shareImageButton.addEventListener("click", openCreatePostModal);
