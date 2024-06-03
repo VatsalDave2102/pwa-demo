@@ -4,7 +4,7 @@ importScripts("/src/js/utility.js");
 // when making changes in service worker, open a new tab to see changes or
 // update from developer console to see changes
 
-var CACHE_STATIC_NAME = "static-v16";
+var CACHE_STATIC_NAME = "static-v19";
 var CACHE_DYNAMIC_NAME = "dynamic-v3";
 var STATIC_FILES = [
 	"/",
@@ -93,14 +93,19 @@ self.addEventListener("fetch", function (event) {
 		event.respondWith(
 			fetch(event.request).then(function (response) {
 				var clonedResponse = response.clone();
-				clonedResponse.json().then(function (data) {
-					for (var key in data) {
-						writeData("posts", data[key]);
-					}
-				});
+				clearAllData("posts")
+					.then(function () {
+						return clonedResponse.json();
+					})
+					.then(function (data) {
+						for (var key in data) {
+							writeData("posts", data[key]);
+						}
+					});
 				return response;
 			})
 		);
+		// if url is in static cache already
 	} else if (isInArray(event.request.url, STATIC_FILES)) {
 		event.respondWith(caches.match(event.request));
 	} else {

@@ -114,24 +114,13 @@ fetch(url)
 		}
 		updateUI(dataArray);
 	});
+
 // cache then network strategy
-if ("caches" in window) {
-	caches
-		.match(url)
-		.then(function (response) {
-			if (response) {
-				return response.json();
-			}
-		})
-		.then(function (data) {
+if ("indexedDB" in window) {
+	readAllData("posts").then(function (data) {
+		if (!networkDataReceived) {
 			console.log("From cache", data);
-			// if data is received from web, dont create another card
-			if (!networkDataReceived) {
-				let dataArray = [];
-				for (let key in data) {
-					dataArray.push(data[key]);
-				}
-				updateUI(dataArray);
-			}
-		});
+			updateUI(data);
+		}
+	});
 }
