@@ -4,7 +4,7 @@ importScripts("/src/js/utility.js");
 // when making changes in service worker, open a new tab to see changes or
 // update from developer console to see changes
 
-var CACHE_STATIC_NAME = "static-v19";
+var CACHE_STATIC_NAME = "static-v23";
 var CACHE_DYNAMIC_NAME = "dynamic-v3";
 var STATIC_FILES = [
 	"/",
