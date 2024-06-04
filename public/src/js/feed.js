@@ -4,6 +4,9 @@ var sharedMomentsArea = document.querySelector("#shared-moments");
 var closeCreatePostModalButton = document.querySelector(
 	"#close-create-post-modal-btn"
 );
+var form = document.querySelector("form");
+var titleInput = document.querySelector("#title");
+var locationInput = document.querySelector("#location");
 
 function openCreatePostModal() {
 	// createPostArea.style.display = "block";
@@ -128,3 +131,68 @@ if ("indexedDB" in window) {
 		}
 	});
 }
+
+// function to send data directly if user does not have sync manager
+function sendData() {
+	fetch(
+		"https://pwa-demo-95402-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json",
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+			},
+			body: JSON.stringify({
+				id: new Date().toISOString(),
+				title: titleInput.value,
+				location: locationInput.value,
+				image:
+					"https://firebasestorage.googleapis.com/v0/b/pwa-demo-95402.appspot.com/o/sf-boat.jpg?alt=media&token=33b25b13-ec61-46ae-9d3b-64541e87b20e",
+			}),
+		}
+	).then(function (response) {
+		console.log("Sent data", response);
+		updateUI();
+	});
+}
+
+// when user submits form
+form.addEventListener("submit", function (event) {
+	event.preventDefault();
+
+	// send alert for invalid data
+	if (titleInput.value.trim() === "" || locationInput.value.trim() === "") {
+		alert("Please enter valid data");
+		return;
+	}
+	closeCreatePostModal();
+
+	// check if user has serviceWorker and SyncManager
+	if ("serviceWorker" in navigator && "SyncManager" in window) {
+		// if serviceWorker is ready, add post to sync in indexedDB
+		navigator.serviceWorker.ready.then(function (serviceWorker) {
+			var post = {
+				id: new Date().toISOString(),
+				title: titleInput.value,
+				location: locationInput.value,
+			};
+
+			// write data in indexedDB
+			writeData("sync-posts", post)
+				.then(function () {
+					return serviceWorker.sync.register("sync-new-posts");
+				})
+				.then(function () {
+					var snackbarContainer = document.querySelector("#confirmation-toast");
+					var data = { message: "Your post was saved for syncing!" };
+					snackbarContainer.MaterialSnackbar.showSnackbar(data);
+				})
+				.catch(function (err) {
+					console.log(err);
+				});
+		});
+	} else {
+		// if serviceWorker or SyncManager not available, send data to server
+		sendData();
+	}
+});

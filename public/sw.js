@@ -157,3 +157,45 @@ self.addEventListener("fetch", function (event) {
 // 			})
 // 	);
 // });
+
+// when connection is re established, upload the remaining posts that were added to sync
+self.addEventListener("sync", function (event) {
+	console.log("[Service worker] Backround syncing", event);
+	if (event.tag === "sync-new-posts") {
+		console.log("[Service worker] Syncing new posts");
+		event.waitUntil(
+			readAllData("sync-posts").then(function (data) {
+				for (var dt of data) {
+					fetch(
+						"https://pwa-demo-95402-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json",
+						{
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+								Accept: "application/json",
+							},
+							body: JSON.stringify({
+								id: dt.id,
+								title: dt.title,
+								location: dt.location,
+								image:
+									"https://firebasestorage.googleapis.com/v0/b/pwa-demo-95402.appspot.com/o/sf-boat.jpg?alt=media&token=33b25b13-ec61-46ae-9d3b-64541e87b20e",
+							}),
+						}
+					)
+						.then(function (response) {
+							console.log("Sent data", response);
+							if (response.ok) {
+								response.json().then(function (resData) {
+									deleteItemFromData("sync-posts", resData.id);
+								});
+							}
+						})
+						.catch(function (err) {
+							console.log("Error while sending data", err);
+						});
+				}
+			})
+		);
+	}
+});
