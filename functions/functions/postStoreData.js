@@ -6,7 +6,7 @@ const webpush = require("web-push");
 const app = express();
 app.use(express.json());
 
-var serviceAccount = require("./pwagram-admin-key.json");
+var serviceAccount = require("../pwagram-admin-key.json");
 
 admin.initializeApp({
 	credential: admin.credential.cert(serviceAccount),
