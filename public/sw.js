@@ -199,3 +199,24 @@ self.addEventListener("sync", function (event) {
 		);
 	}
 });
+
+// attaching event listener to handle notification click
+self.addEventListener("notificationclick", function (event) {
+	var notification = event.notification;
+	var action = event.action;
+
+	console.log(notification);
+
+	if (action === "confirm") {
+		console.log("Confirm was chosen");
+		notification.close();
+	} else {
+		console.log(action);
+		notification.close();
+	}
+});
+
+// attaching event listener to handle notification close
+self.addEventListener("notificationclose", function (event) {
+	console.log("Notification was closed", event);
+});
