@@ -58,9 +58,58 @@ function displayConfirmNotification() {
 
 		navigator.serviceWorker.ready.then(function (swreg) {
 			// display notification
-			swreg.showNotification("Successfully subscribed from SW!", options);
+			swreg.showNotification("Successfully subscribed", options);
 		});
 	}
+}
+
+// function to configure push subscription
+function configurePushSub() {
+	if (!("serviceWorker" in navigator)) {
+		return;
+	}
+
+	var reg;
+	navigator.serviceWorker.ready
+		.then(function (swreg) {
+			reg = swreg;
+			return swreg.pushManager.getSubscription();
+		})
+		.then(function (subscription) {
+			if (subscription === null) {
+				var vapidPublicKey =
+					"BGYUj1uXjtR7bG4rCsXvoCNlhk2-NWjgUgzRLTyxyBjEjoZ5GrNs4CHtzTqamypD4OglG9dQs171AST374NUtG8";
+				var convertedVapidPublicKey = urlBase64ToUint8Array(vapidPublicKey);
+				// create a new subscription
+				return reg.pushManager.subscribe({
+					userVisibleOnly: true,
+					applicationServerKey: convertedVapidPublicKey,
+				});
+			} else {
+				// we have a subscription
+			}
+		})
+		.then(function (newSubscription) {
+			return fetch(
+				"https://pwa-demo-95402-default-rtdb.asia-southeast1.firebasedatabase.app/subscriptions.json",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Accept: "application/json",
+					},
+					body: JSON.stringify(newSubscription),
+				}
+			);
+		})
+		.then(function (res) {
+			if (res.ok) {
+				displayConfirmNotification();
+			}
+		})
+		.catch(function (err) {
+			console.log("[NOTIFICATION]", err);
+		});
 }
 
 // function to request user to allow notifications
@@ -70,7 +119,8 @@ function askForNotificationPermission() {
 		if (result !== "granted") {
 			console.log("No notification permission granted");
 		} else {
-			displayConfirmNotification();
+			configurePushSub();
+			// displayConfirmNotification();
 		}
 	});
 }
