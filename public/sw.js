@@ -167,7 +167,7 @@ self.addEventListener("sync", function (event) {
 			readAllData("sync-posts").then(function (data) {
 				for (var dt of data) {
 					fetch(
-						"https://pwa-demo-95402-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json",
+						"https://pwa-serverless.netlify.app/.netlify/functions/storePostData",
 						{
 							method: "POST",
 							headers: {

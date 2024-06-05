@@ -1,26 +1,20 @@
 {
 	"name": "functions",
-	"description": "Cloud Functions for Firebase",
-	"scripts": {
-		"serve": "firebase emulators:start --only functions",
-		"shell": "firebase functions:shell",
-		"start": "npm run shell",
-		"deploy": "firebase deploy --only functions",
-		"logs": "firebase functions:log",
-		"web-push": "web-push"
-	},
-	"engines": {
-		"node": "^18"
-	},
+	"version": "1.0.0",
 	"main": "index.js",
+	"scripts": {
+		"start": "node postStoreData.js",
+		"build": "npm install",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": "",
 	"dependencies": {
-		"cors": "^2.8.5",
+		"express": "^4.19.2",
 		"firebase-admin": "^12.1.1",
-		"firebase-functions": "^5.0.0",
+		"serverless-http": "^3.2.0",
 		"web-push": "^3.6.7"
-	},
-	"devDependencies": {
-		"firebase-functions-test": "^3.1.0"
-	},
-	"private": true
+	}
 }

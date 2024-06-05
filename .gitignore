@@ -1,3 +1,5 @@
 .idea
 node_modules
 functions/pwagram-admin-key.json
+# Local Netlify folder
+.netlify
