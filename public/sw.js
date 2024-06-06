@@ -166,23 +166,20 @@ self.addEventListener("sync", function (event) {
 		event.waitUntil(
 			readAllData("sync-posts").then(function (data) {
 				for (var dt of data) {
-					fetch(
-						"https://pwa-serverless.netlify.app/.netlify/functions/storePostData",
-						{
-							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
-								Accept: "application/json",
-							},
-							body: JSON.stringify({
-								id: dt.id,
-								title: dt.title,
-								location: dt.location,
-								image:
-									"https://firebasestorage.googleapis.com/v0/b/pwa-demo-95402.appspot.com/o/sf-boat.jpg?alt=media&token=33b25b13-ec61-46ae-9d3b-64541e87b20e",
-							}),
-						}
-					)
+					fetch("http://localhost:3000/postStoreData", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Accept: "application/json",
+						},
+						body: JSON.stringify({
+							id: dt.id,
+							title: dt.title,
+							location: dt.location,
+							image:
+								"https://firebasestorage.googleapis.com/v0/b/pwa-demo-95402.appspot.com/o/sf-boat.jpg?alt=media&token=33b25b13-ec61-46ae-9d3b-64541e87b20e",
+						}),
+					})
 						.then(function (response) {
 							console.log("Sent data", response);
 							if (response.ok) {

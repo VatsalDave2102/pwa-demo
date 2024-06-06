@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"main": "index.js",
 	"scripts": {
-		"start": "node postStoreData.js",
+		"start": "nodemon postStoreData.js",
 		"build": "npm install",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
@@ -12,6 +12,7 @@
 	"license": "ISC",
 	"description": "",
 	"dependencies": {
+		"cors": "^2.8.5",
 		"express": "^4.19.2",
 		"firebase-admin": "^12.1.1",
 		"serverless-http": "^3.2.0",
