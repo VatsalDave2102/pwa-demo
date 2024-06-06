@@ -218,11 +218,11 @@ self.addEventListener("notificationclick", function (event) {
 
 				// if window is open, navigate to it
 				if (client !== undefined) {
-					client.navigate("http://localhost:8080");
+					client.navigate(notification.data.url);
 					client.focus();
 				} else {
 					// if no window open, open a new one
-					clients.openWindow("http://localhost:8080");
+					clients.openWindow(notification.data.url);
 				}
 				notification.close();
 			})
@@ -240,7 +240,7 @@ self.addEventListener("notificationclose", function (event) {
 self.addEventListener("push", function (event) {
 	console.log("Push notification received", event);
 
-	let data = { title: "New!", content: "Something new happened" };
+	let data = { title: "New!", content: "Something new happened", url: "/" };
 	if (event) {
 		data = JSON.parse(event.data.text());
 	}
@@ -249,6 +249,9 @@ self.addEventListener("push", function (event) {
 		body: data.content,
 		icon: "/src/images/icons/app-icon-96x96.png",
 		badge: "/src/images/icons/app-icon-96x96.png",
+		data: {
+			url: data.openUrl,
+		},
 	};
 
 	event.waitUntil(self.registration.showNotification(data.title, options));

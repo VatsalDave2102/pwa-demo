@@ -55,7 +55,11 @@ app.post("/postStoreData", async (request, response) => {
 				webpush
 					.sendNotification(
 						pushConfig,
-						JSON.stringify({ title: "New post", content: "New post added" })
+						JSON.stringify({
+							title: "New post",
+							content: "New post added",
+							openUrl: "/help",
+						})
 					)
 					.catch(function (err) {
 						console.log(err);
