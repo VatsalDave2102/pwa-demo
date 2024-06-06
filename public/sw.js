@@ -209,6 +209,24 @@ self.addEventListener("notificationclick", function (event) {
 		notification.close();
 	} else {
 		console.log(action);
+		event.waitUntil(
+			clients.matchAll().then(function (clis) {
+				const client = clis.find(function (c) {
+					// return true if client is visible, which mean open browser
+					return c.visibilityState === "visible";
+				});
+
+				// if window is open, navigate to it
+				if (client !== undefined) {
+					client.navigate("http://localhost:8080");
+					client.focus();
+				} else {
+					// if no window open, open a new one
+					clients.openWindow("http://localhost:8080");
+				}
+				notification.close();
+			})
+		);
 		notification.close();
 	}
 });
@@ -216,4 +234,22 @@ self.addEventListener("notificationclick", function (event) {
 // attaching event listener to handle notification close
 self.addEventListener("notificationclose", function (event) {
 	console.log("Notification was closed", event);
+});
+
+// listener to push notification and display it
+self.addEventListener("push", function (event) {
+	console.log("Push notification received", event);
+
+	let data = { title: "New!", content: "Something new happened" };
+	if (event) {
+		data = JSON.parse(event.data.text());
+	}
+
+	const options = {
+		body: data.content,
+		icon: "/src/images/icons/app-icon-96x96.png",
+		badge: "/src/images/icons/app-icon-96x96.png",
+	};
+
+	event.waitUntil(self.registration.showNotification(data.title, options));
 });
