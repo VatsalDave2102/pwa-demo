@@ -61,3 +61,24 @@ function urlBase64ToUint8Array(base64String) {
 	}
 	return outputArray;
 }
+
+function dataURItoBlob(dataURI) {
+	var byteString = atob(dataURI.split(",")[1]);
+	var mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
+	var ab = new ArrayBuffer(byteString.length);
+	var la = new Uint8Array(ab);
+	for (var i = 0; i < byteString.length; i++) {
+		la[i] = byteString.charCodeAt(i);
+	}
+	var blob = new Blob([ab], { type: mimeString });
+	return blob;
+}
+
+function getBase64(file) {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.readAsDataURL(file);
+		reader.onload = () => resolve(reader.result);
+		reader.onerror = (error) => reject(error);
+	});
+}

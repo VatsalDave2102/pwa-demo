@@ -12,10 +12,14 @@
 	"license": "ISC",
 	"description": "",
 	"dependencies": {
+		"@google-cloud/storage": "^7.11.1",
+		"busboy": "^1.6.0",
 		"cors": "^2.8.5",
 		"express": "^4.19.2",
 		"firebase-admin": "^12.1.1",
+		"formidable": "^3.5.1",
 		"serverless-http": "^3.2.0",
+		"uuid-v4": "^0.1.0",
 		"web-push": "^3.6.7"
 	}
 }

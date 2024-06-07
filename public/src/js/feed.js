@@ -7,11 +7,69 @@ var closeCreatePostModalButton = document.querySelector(
 var form = document.querySelector("form");
 var titleInput = document.querySelector("#title");
 var locationInput = document.querySelector("#location");
+const videoPlayer = document.querySelector("#player");
+const canvasElement = document.querySelector("#canvas");
+const captureButton = document.querySelector("#capture-btn");
+const imagePicker = document.querySelector("#image-picker");
+const imagePickerArea = document.querySelector("#pick-image");
+var picture;
+
+function initializeMedia() {
+	if (!("mediaDevices" in navigator)) {
+		navigator.mediaDevices = {};
+	}
+	if (!("getUserMedia" in navigator.mediaDevices)) {
+		navigator.mediaDevices.getUserData = function (constraints) {
+			let getUserMedia =
+				navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+			if (!getUserMedia) {
+				return Promise.reject(new Error("getUserMedia in not implemented"));
+			}
+			return new Promise(function (resolve, reject) {
+				getUserMedia.call(navigator, constraints, resolve, reject);
+			});
+		};
+	}
+	navigator.mediaDevices
+		.getUserMedia({ video: true })
+		.then(function (stream) {
+			videoPlayer.srcObject = stream;
+			videoPlayer.style.display = "block";
+			captureButton.style.display = "block";
+		})
+		.catch(function (err) {
+			imagePickerArea.style.display = "block";
+		});
+}
+
+captureButton.addEventListener("click", function (event) {
+	canvasElement.style.display = "block";
+	videoPlayer.style.display = "none";
+	captureButton.style.display = "none";
+	const context = canvasElement.getContext("2d");
+	console.log(context);
+	context.drawImage(
+		videoPlayer,
+		0,
+		0,
+		canvas.width,
+		videoPlayer.videoHeight / (videoPlayer.videoWidth / canvas.width)
+	);
+
+	videoPlayer.srcObject.getVideoTracks().forEach(function (track) {
+		track.stop();
+	});
+	console.log(canvasElement);
+	picture = dataURItoBlob(canvasElement.toDataURL());
+	console.log(picture);
+});
 
 function openCreatePostModal() {
 	// createPostArea.style.display = "block";
 	// setTimeout(() => {
 	createPostArea.style.transform = "translateY(0)";
+	initializeMedia();
 	// }, 1);
 
 	// if there is deferredPrompt, then show install banner to user
@@ -43,6 +101,9 @@ function openCreatePostModal() {
 
 function closeCreatePostModal() {
 	createPostArea.style.transform = "translateY(100vh)";
+	imagePickerArea.style.display = "none";
+	videoPlayer.style.display = "none";
+	canvasElement.style.display = "none";
 	// createPostArea.style.display = "none";
 }
 
@@ -134,25 +195,32 @@ if ("indexedDB" in window) {
 
 // function to send data directly if user does not have sync manager
 function sendData() {
-	fetch(
-		"https://pwa-demo-95402-default-rtdb.asia-southeast1.firebasedatabase.app/posts.json",
-		{
+	getBase64(picture).then(function (base64image) {
+		const postData = {
+			id: id,
+			title: titleInput.value,
+			location: locationInput.value,
+			image: base64image,
+		};
+		// send post reqeust to backend
+		fetch("http://localhost:3000/postStoreData", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 				Accept: "application/json",
 			},
-			body: JSON.stringify({
-				id: new Date().toISOString(),
-				title: titleInput.value,
-				location: locationInput.value,
-				image:
-					"https://firebasestorage.googleapis.com/v0/b/pwa-demo-95402.appspot.com/o/sf-boat.jpg?alt=media&token=33b25b13-ec61-46ae-9d3b-64541e87b20e",
-			}),
-		}
-	).then(function (response) {
-		console.log("Sent data", response);
-		updateUI();
+			body: JSON.stringify(postData),
+		})
+			.then(function (response) {
+				if (response.ok) {
+					response.json().then(function (resData) {
+						deleteItemFromData("sync-posts", resData.id);
+					});
+				}
+			})
+			.catch(function (err) {
+				console.log("Error while sending data", err);
+			});
 	});
 }
 
@@ -171,10 +239,12 @@ form.addEventListener("submit", function (event) {
 	if ("serviceWorker" in navigator && "SyncManager" in window) {
 		// if serviceWorker is ready, add post to sync in indexedDB
 		navigator.serviceWorker.ready.then(function (serviceWorker) {
+			console.log(picture);
 			var post = {
 				id: new Date().toISOString(),
 				title: titleInput.value,
 				location: locationInput.value,
+				picture: picture,
 			};
 
 			// write data in indexedDB

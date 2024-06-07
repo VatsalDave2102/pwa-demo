@@ -2,14 +2,29 @@ const admin = require("firebase-admin");
 const express = require("express");
 const webpush = require("web-push");
 const cors = require("cors");
+const fs = require("fs");
+const UUID = require("uuid-v4");
+const os = require("os");
+const path = require("path");
+const { Storage } = require("@google-cloud/storage");
+
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" })); // to parse JSON bodies
 
-// if firebase app already initialized, don't initialize again
+// google cloud config
+const gcconfig = {
+	projectId: "pwa-demo-95402",
+	keyFilename: "pwagram-admin-key.json",
+};
+
+// instance of google cloud storage
+const gcs = new Storage(gcconfig);
+
+// Initialize Firebase Admin
 if (!admin.apps.length) {
-	var serviceAccount = require("./pwagram-admin-key.json");
+	const serviceAccount = require("./pwagram-admin-key.json");
 	admin.initializeApp({
 		credential: admin.credential.cert(serviceAccount),
 		databaseURL:
@@ -17,66 +32,108 @@ if (!admin.apps.length) {
 	});
 }
 
-// post request to store data
-app.post("/postStoreData", async (request, response) => {
-	try {
-		// post the data to realtime database
-		await admin.database().ref("posts").push({
-			id: request.body.id,
-			title: request.body.title,
-			location: request.body.location,
-			image: request.body.image,
-		});
+// handler to post data in firebase
+app.post("/postStoreData", (request, response) => {
+	// extracting data
+	const { id, title, location, image } = request.body;
+	const uuid = UUID();
 
-		// set vapid details
-		webpush.setVapidDetails(
-			"mailto:vatsaldave2002@gmail.com",
-			"BGYUj1uXjtR7bG4rCsXvoCNlhk2-NWjgUgzRLTyxyBjEjoZ5GrNs4CHtzTqamypD4OglG9dQs171AST374NUtG8",
-			"U1Z8DzI7WopNAbiUu7WCFfmHsFjsXHCq-KJh0QBwQdY"
-		);
+	// get bucket from firebase
+	const bucket = gcs.bucket("pwa-demo-95402.appspot.com");
 
-		// fetch subscriptions
-		const subscriptionSnapshot = await admin
-			.database()
-			.ref("subscriptions")
-			.once("value");
+	// store image base64 data to temporary directory
+	const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+	const buffer = Buffer.from(base64Data, "base64");
+	const filepath = path.join(os.tmpdir(), `${id}.png`);
 
-		// loop throughout the subscriptions and send push notification
-		subscriptionSnapshot.forEach(function (sub) {
-			const subscription = sub.val();
-			if (subscription.keys.auth && subscription.keys.p256dh) {
-				var pushConfig = {
-					endpoint: subscription.endpoint,
-					keys: {
-						auth: subscription.keys.auth,
-						p256dh: subscription.keys.p256dh,
-					},
-				};
-				webpush
-					.sendNotification(
-						pushConfig,
-						JSON.stringify({
-							title: "New post",
-							content: "New post added",
-							openUrl: "/help",
-						})
-					)
-					.catch(function (err) {
-						console.log(err);
+	fs.writeFileSync(filepath, buffer);
+
+	// upload the temporary store file to bucket
+	bucket.upload(
+		filepath,
+		// config for upload type and metadata
+		{
+			uploadType: "media",
+			metadata: {
+				contentType: "image/*",
+				metadata: {
+					firebaseStorageDownloadTokens: uuid,
+				},
+			},
+		},
+		(err, file) => {
+			// if error occurs
+			if (err) {
+				console.error("Error uploading file:", err);
+				return response.status(500).json({ error: err });
+			}
+
+			// generate file URL
+			const fileUrl = `https://firebasestorage.googleapis.com/v0/b/${
+				bucket.name
+			}/o/${encodeURIComponent(file.name)}?alt=media&token=${uuid}`;
+
+			// post the data to the realtime database
+			admin
+				.database()
+				.ref("posts")
+				.push({
+					id: id,
+					title: title,
+					location: location,
+					image: fileUrl,
+				})
+				.then(() => {
+					// set VAPID details
+					webpush.setVapidDetails(
+						"mailto:vatsaldave2002@gmail.com",
+						"BGYUj1uXjtR7bG4rCsXvoCNlhk2-NWjgUgzRLTyxyBjEjoZ5GrNs4CHtzTqamypD4OglG9dQs171AST374NUtG8",
+						"U1Z8DzI7WopNAbiUu7WCFfmHsFjsXHCq-KJh0QBwQdY"
+					);
+
+					// fetch subscriptions
+					return admin.database().ref("subscriptions").once("value");
+				})
+				.then((subscriptions) => {
+					// loop through each subscription
+					subscriptions.forEach((sub) => {
+						const subscription = sub.val();
+
+						// config for push notification
+						const pushConfig = {
+							endpoint: subscription.endpoint,
+							keys: {
+								auth: subscription.keys.auth,
+								p256dh: subscription.keys.p256dh,
+							},
+						};
+
+						// push notification to device
+						webpush
+							.sendNotification(
+								pushConfig,
+								JSON.stringify({
+									title: "New post",
+									content: "New post added",
+									openUrl: "/help",
+								})
+							)
+							.catch((err) => {
+								console.error("Error sending notification", err);
+							});
 					});
 
-				response
-					.status(201)
-					.json({ message: "Data stored", id: request.body.id });
-			}
-		});
-	} catch (err) {
-		console.log("Error on server side", err);
-		response.status(500).json({ error: err });
-	}
+					response.status(201).json({ message: "Data stored", id: id });
+				})
+				.catch((err) => {
+					console.error("Error storing data", err);
+					response.status(500).json({ error: err });
+				});
+		}
+	);
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-	console.log("Server is running");
+	console.log("Server is running on port", PORT);
 });
