@@ -4,13 +4,14 @@ importScripts("/src/js/utility.js");
 // when making changes in service worker, open a new tab to see changes or
 // update from developer console to see changes
 
-var CACHE_STATIC_NAME = "static-v23";
-var CACHE_DYNAMIC_NAME = "dynamic-v3";
+var CACHE_STATIC_NAME = "static-v31";
+var CACHE_DYNAMIC_NAME = "dynamic-v7";
 var STATIC_FILES = [
 	"/",
 	"/index.html",
 	"/offline.html",
 	"/src/js/app.js",
+	"/src/js/utility.js",
 	"/src/js/feed.js",
 	"/src/js/idb.js",
 	"/src/js/promise.js",
@@ -161,36 +162,43 @@ self.addEventListener("fetch", function (event) {
 // when connection is re established, upload the remaining posts that were added to sync
 self.addEventListener("sync", function (event) {
 	console.log("[Service worker] Backround syncing", event);
+
 	if (event.tag === "sync-new-posts") {
 		console.log("[Service worker] Syncing new posts");
+
 		event.waitUntil(
 			readAllData("sync-posts").then(function (data) {
 				for (var dt of data) {
-					fetch("http://localhost:3000/postStoreData", {
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							Accept: "application/json",
-						},
-						body: JSON.stringify({
+					getBase64(dt.picture).then(function (base64image) {
+						const postData = {
 							id: dt.id,
 							title: dt.title,
 							location: dt.location,
-							image:
-								"https://firebasestorage.googleapis.com/v0/b/pwa-demo-95402.appspot.com/o/sf-boat.jpg?alt=media&token=33b25b13-ec61-46ae-9d3b-64541e87b20e",
-						}),
-					})
-						.then(function (response) {
-							console.log("Sent data", response);
-							if (response.ok) {
-								response.json().then(function (resData) {
-									deleteItemFromData("sync-posts", resData.id);
-								});
-							}
+							image: base64image,
+							rawLocationLat: dt.rawLocation.lat,
+							rawLocationLng: dt.rawLocation.lng,
+						};
+
+						// send post reqeust to backend
+						fetch("http://localhost:3000/postStoreData", {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+								Accept: "application/json",
+							},
+							body: JSON.stringify(postData),
 						})
-						.catch(function (err) {
-							console.log("Error while sending data", err);
-						});
+							.then(function (response) {
+								if (response.ok) {
+									response.json().then(function (resData) {
+										deleteItemFromData("sync-posts", resData.id);
+									});
+								}
+							})
+							.catch(function (err) {
+								console.log("Error while sending data", err);
+							});
+					});
 				}
 			})
 		);
