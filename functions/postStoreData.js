@@ -35,7 +35,8 @@ if (!admin.apps.length) {
 // handler to post data in firebase
 app.post("/postStoreData", (request, response) => {
 	// extracting data
-	const { id, title, location, image } = request.body;
+	const { id, title, location, image, rawLocationLat, rawLocationLng } =
+		request.body;
 	const uuid = UUID();
 
 	// get bucket from firebase
@@ -82,6 +83,10 @@ app.post("/postStoreData", (request, response) => {
 					title: title,
 					location: location,
 					image: fileUrl,
+					rawLocation: {
+						lat: rawLocationLat,
+						lng: rawLocationLng,
+					},
 				})
 				.then(() => {
 					// set VAPID details
