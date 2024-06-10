@@ -1,18 +1,75 @@
-var shareImageButton = document.querySelector("#share-image-button");
-var createPostArea = document.querySelector("#create-post");
-var sharedMomentsArea = document.querySelector("#shared-moments");
-var closeCreatePostModalButton = document.querySelector(
+const shareImageButton = document.querySelector("#share-image-button");
+const createPostArea = document.querySelector("#create-post");
+const sharedMomentsArea = document.querySelector("#shared-moments");
+const closeCreatePostModalButton = document.querySelector(
 	"#close-create-post-modal-btn"
 );
-var form = document.querySelector("form");
-var titleInput = document.querySelector("#title");
-var locationInput = document.querySelector("#location");
+const form = document.querySelector("form");
+const titleInput = document.querySelector("#title");
+const locationInput = document.querySelector("#location");
 const videoPlayer = document.querySelector("#player");
 const canvasElement = document.querySelector("#canvas");
 const captureButton = document.querySelector("#capture-btn");
 const imagePicker = document.querySelector("#image-picker");
 const imagePickerArea = document.querySelector("#pick-image");
-var picture;
+let picture;
+const locationBtn = document.querySelector("#location-btn");
+const locationLoader = document.querySelector("#location-loader");
+
+// default location co-ordinates
+let fetchedLocation = { lat: 0, lng: 0 };
+
+// listener to fetch user location
+locationBtn.addEventListener("click", function (event) {
+	// if no geolocation api available, hide location button
+	if (!("geolocation" in navigator)) {
+		locationBtn.style.display = "none";
+		return;
+	}
+
+	let displayedAlert = false;
+
+	// show loader, hide button
+	locationBtn.style.display = "none";
+	locationLoader.style.display = "block";
+
+	// get current location
+	navigator.geolocation.getCurrentPosition(
+		function (position) {
+			// hide loader, show button
+			locationBtn.style.display = "inline";
+			locationLoader.style.display = "none";
+			fetchedLocation = {
+				lat: position.coords.latitude,
+				lng: position.coords.longitude,
+			};
+			locationInput.value = "In SF";
+			document.querySelector("#manual-location").classList.add("is-focused");
+		},
+		function (err) {
+			// if not found, hide loader, show button
+			console.log(err);
+			locationBtn.style.display = "inline";
+			locationLoader.style.display = "none";
+
+			// if alert has not been displayed yet
+			if (!displayedAlert) {
+				alert("Could not fetch location, please enter manually");
+				displayedAlert = true;
+			}
+			fetchedLocation = { lat: 0, lng: 0 };
+		},
+		{ timeout: 7000 }
+	);
+});
+
+// function to check geolocation availability
+function initializeLocation() {
+	if (!("geolocation" in navigator)) {
+		locationBtn.style.display = "none";
+		return;
+	}
+}
 
 function initializeMedia() {
 	if (!("mediaDevices" in navigator)) {
@@ -62,15 +119,20 @@ captureButton.addEventListener("click", function (event) {
 	});
 	console.log(canvasElement);
 	picture = dataURItoBlob(canvasElement.toDataURL());
-	console.log(picture);
+});
+
+// to pick image from input
+imagePicker.addEventListener("change", function (event) {
+	picture = event.target.files[0];
 });
 
 function openCreatePostModal() {
 	// createPostArea.style.display = "block";
-	// setTimeout(() => {
-	createPostArea.style.transform = "translateY(0)";
+	setTimeout(() => {
+		createPostArea.style.transform = "translateY(0)";
+	}, 1);
 	initializeMedia();
-	// }, 1);
+	initializeLocation();
 
 	// if there is deferredPrompt, then show install banner to user
 	if (deferredPrompt) {
@@ -100,10 +162,21 @@ function openCreatePostModal() {
 }
 
 function closeCreatePostModal() {
-	createPostArea.style.transform = "translateY(100vh)";
 	imagePickerArea.style.display = "none";
 	videoPlayer.style.display = "none";
 	canvasElement.style.display = "none";
+	locationBtn.style.display = "inline";
+	locationLoader.style.display = "none";
+	captureButton.style.display = "inline";
+	if (videoPlayer.srcObject) {
+		videoPlayer.srcObject.getVideoTracks().forEach(function (track) {
+			track.stop();
+		});
+	}
+
+	setTimeout(() => {
+		createPostArea.style.transform = "translateY(100vh)";
+	}, 1);
 	// createPostArea.style.display = "none";
 }
 
@@ -201,6 +274,8 @@ function sendData() {
 			title: titleInput.value,
 			location: locationInput.value,
 			image: base64image,
+			rawLocationLat: fetchedLocation.lat,
+			rawLocationLng: fetchedLocation.lng,
 		};
 		// send post reqeust to backend
 		fetch("http://localhost:3000/postStoreData", {
@@ -245,6 +320,7 @@ form.addEventListener("submit", function (event) {
 				title: titleInput.value,
 				location: locationInput.value,
 				picture: picture,
+				rawLocation: fetchedLocation,
 			};
 
 			// write data in indexedDB

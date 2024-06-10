@@ -4,7 +4,7 @@ importScripts("/src/js/utility.js");
 // when making changes in service worker, open a new tab to see changes or
 // update from developer console to see changes
 
-var CACHE_STATIC_NAME = "static-v29";
+var CACHE_STATIC_NAME = "static-v31";
 var CACHE_DYNAMIC_NAME = "dynamic-v7";
 var STATIC_FILES = [
 	"/",
@@ -175,6 +175,8 @@ self.addEventListener("sync", function (event) {
 							title: dt.title,
 							location: dt.location,
 							image: base64image,
+							rawLocationLat: dt.rawLocation.lat,
+							rawLocationLng: dt.rawLocation.lng,
 						};
 
 						// send post reqeust to backend
